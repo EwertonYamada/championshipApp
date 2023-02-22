@@ -1,15 +1,17 @@
 version: '3.1'
 services:
   db:
-    image: mysql
+    image: postgres
     container_name: championshipApp
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: championshipApp
     ports:
-      - "3308:3306"
+      - "3308:5432"
     volumes:
-      - championshipApp:/var/lib/mysql
+      - championshipApp:/var/lib/postgres
 
 volumes:
   championshipApp:
