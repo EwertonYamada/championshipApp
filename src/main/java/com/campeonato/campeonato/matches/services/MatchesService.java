@@ -9,7 +9,6 @@ import com.campeonato.campeonato.matches.Dto.MatchInProgressDto;
 import com.campeonato.campeonato.matches.Dto.MatchesDto;
 import com.campeonato.campeonato.matches.domain.MatchesDomain;
 import com.campeonato.campeonato.matches.repository.MatchesRepository;
-import com.campeonato.campeonato.teams.domain.TeamDomain;
 import com.campeonato.campeonato.teams.repository.TeamRepository;
 import com.campeonato.campeonato.teams.services.TeamService;
 import org.springframework.data.domain.Page;
@@ -17,10 +16,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.web.server.ResponseStatusException;
+
 import java.util.Date;
 import java.util.Objects;
+
 
 @Service
 public class MatchesService {
@@ -43,8 +43,86 @@ public class MatchesService {
         this.classificationTableRepository = classificationTableRepository;
     }
 
-    //VALIDADORES
+    @Transactional
+    public MatchesDomain saveMatch(MatchesDto matchesDto) {
+        this.validateNewMatch(matchesDto);
+        MatchesDomain newMatch = new MatchesDomain();
 
+        if (Objects.nonNull(matchesDto.getChampionshipId())) {
+            ChampionshipDomain championship = this.championshipService.findById(matchesDto.getChampionshipId());
+            newMatch.setChampionship(championship);
+        }
+
+        newMatch.setHomeTeam(this.teamService.findById(matchesDto.getHomeTeamId()));
+        newMatch.setVisitingTeam(this.teamService.findById(matchesDto.getVisitingTeamId()));
+        newMatch.setHomeTeamGoals(0);
+        newMatch.setVisitingTeamGoals(0);
+        newMatch.setFinishedMatch(false);
+        newMatch.setInProgress(false);
+        newMatch.setMatchDate(matchesDto.getMatchDate());
+        return this.matchesRepository.save(newMatch);
+    }
+
+    @Transactional(readOnly = true)
+    public MatchesDto findById(Long id) {
+        MatchesDomain matchDomain = this.matchesRepository.findById(id).get();
+        MatchesDto matchDto = new MatchesDto(matchDomain);
+        return matchDto;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<MatchesDomain> findAll(Pageable pageable) {
+        return this.matchesRepository.findAll(pageable);
+    }
+
+    @Transactional
+    public MatchesDomain replaceMatch(long id, MatchesDto matchesDto) {
+        this.validateInProgressOrFinished(id);
+        this.validateNewMatch(matchesDto);
+        MatchesDomain updateMatch = this.matchesRepository.findById(id).get();
+        updateMatch.setHomeTeam(updateMatch.getHomeTeam());
+        updateMatch.setVisitingTeam(updateMatch.getVisitingTeam());
+        return this.matchesRepository.save(updateMatch);
+    }
+
+    @Transactional
+    public MatchesDomain updateMatchInProgress(long id, MatchInProgressDto matchInProgressDto) {
+        this.validateNotInProgressOrFinished(id);
+        MatchesDomain matchesDomain = this.matchesRepository.findById(id).get();
+        matchesDomain.setHomeTeamGoals(matchInProgressDto.getHomeTeamGoals());
+        matchesDomain.setVisitingTeamGoals(matchInProgressDto.getVisitingTeamGoals());
+        return this.matchesRepository.save(matchesDomain);
+    }
+
+    @Transactional
+    public void finishMatch(long id) {
+        this.validateNotInProgressOrFinished(id);
+        MatchesDomain finishMatchDomain = this.matchesRepository.findById(id).get();
+        finishMatchDomain.setFinishedMatch(true);
+        finishMatchDomain.setInProgress(false);
+        this.matchesRepository.save(finishMatchDomain);
+
+        if (Objects.nonNull(finishMatchDomain.getChampionship())) {
+            validateFinishMatchOfChampionship(id);
+        }
+    }
+
+    @Transactional
+    public void startMatch(long id) {
+        this.validateInProgressOrFinished(id);
+        MatchesDomain startMatch = this.matchesRepository.findById(id).get();
+        startMatch.setInProgress(true);
+        this.matchesRepository.save(startMatch);
+    }
+
+    //DELETE PARTIDA
+    @Transactional
+    public void deleteMatch(Long id) {
+        this.validateInProgressOrFinished(id);
+        this.matchesRepository.deleteById(id);
+    }
+
+    //VALIDADORES
     // VALIDADOR PARA CRIAR UM NOVO JOGO
     private void validateNewMatch(MatchesDto matchesDto) {
 
@@ -93,9 +171,10 @@ public class MatchesService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Um dos times já possui agenda para este dia");
         }
     }
+
     public void validateDate(MatchesDto matchesDto) {
         Date currentDate = new Date();
-        if(matchesDto.getMatchDate().compareTo(currentDate) < 0 )  {
+        if (matchesDto.getMatchDate().compareTo(currentDate) < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data do jogo deve ser igual ou posterior a atual");
         }
     }
@@ -123,118 +202,31 @@ public class MatchesService {
         team.setTotalScore(team.getTotalScore() + 1);
     }
 
-    private void validateFinishMatch(long id) {
-        validateNotInProgressOrFinished(id);
-        MatchesDomain finishMatchDomain = matchesRepository.findById(id).get();
-        finishMatchDomain.setFinishedMatch(true);
-        finishMatchDomain.setInProgress(false);
-        this.matchesRepository.save(finishMatchDomain);
+    private void validateFinishMatchOfChampionship(long id) {
+        MatchesDomain finishMatch = this.matchesRepository.findById(id).get();
+        long difGoals = finishMatch.getHomeTeamGoals() - finishMatch.getVisitingTeamGoals();
 
-        if (Objects.nonNull(finishMatchDomain.getChampionship())) {
-            long difGoals = finishMatchDomain.getHomeTeamGoals() - finishMatchDomain.getVisitingTeamGoals();
+        ClassificationTableDomain homeTeamClassification = classificationTableRepository.selectTeam(
+                finishMatch.getChampionship().getChampionshipId(), finishMatch.getHomeTeam().getTeamId());
 
-            ClassificationTableDomain homeTeamClassification = classificationTableRepository.selectTeam(
-                    finishMatchDomain.getChampionship().getChampionshipId(), finishMatchDomain.getHomeTeam().getTeamId());
+        ClassificationTableDomain visitingTeamClassification = classificationTableRepository.selectTeam(
+                finishMatch.getChampionship().getChampionshipId(), finishMatch.getVisitingTeam().getTeamId());
 
-            ClassificationTableDomain visitingTeamClassification = classificationTableRepository.selectTeam(
-                    finishMatchDomain.getChampionship().getChampionshipId(), finishMatchDomain.getVisitingTeam().getTeamId());
+        homeTeamClassification.setTotalGoalsScored(homeTeamClassification.getTotalGoalsScored() + finishMatch.getHomeTeamGoals());
+        homeTeamClassification.setTotalGoalsConceded(homeTeamClassification.getTotalGoalsConceded() + finishMatch.getVisitingTeamGoals());
+        homeTeamClassification.setGoalsDifference(homeTeamClassification.getGoalsDifference() + difGoals);
 
-            homeTeamClassification.setTotalGoalsScored(homeTeamClassification.getTotalGoalsScored() + finishMatchDomain.getHomeTeamGoals());
-            homeTeamClassification.setTotalGoalsConceded(homeTeamClassification.getTotalGoalsConceded() + finishMatchDomain.getVisitingTeamGoals());
-            homeTeamClassification.setGoalsDifference(homeTeamClassification.getGoalsDifference() + difGoals);
+        visitingTeamClassification.setTotalGoalsScored(visitingTeamClassification.getTotalGoalsScored() + finishMatch.getVisitingTeamGoals());
+        visitingTeamClassification.setTotalGoalsConceded(visitingTeamClassification.getTotalGoalsConceded() + finishMatch.getHomeTeamGoals());
+        visitingTeamClassification.setGoalsDifference(visitingTeamClassification.getGoalsDifference() - difGoals);
 
-            visitingTeamClassification.setTotalGoalsScored(visitingTeamClassification.getTotalGoalsScored() + finishMatchDomain.getVisitingTeamGoals());
-            visitingTeamClassification.setTotalGoalsConceded(visitingTeamClassification.getTotalGoalsConceded() + finishMatchDomain.getHomeTeamGoals());
-            visitingTeamClassification.setGoalsDifference(visitingTeamClassification.getGoalsDifference() - difGoals);
-
-            if (difGoals > 0) {
-                setMatchPoints(homeTeamClassification, visitingTeamClassification);
-            } else if (difGoals == 0) {
-                setDraws(homeTeamClassification);
-                setDraws(visitingTeamClassification);
-            } else {
-                setMatchPoints(visitingTeamClassification, homeTeamClassification);
-            }
-            classificationTableRepository.save(homeTeamClassification);
-            classificationTableRepository.save(visitingTeamClassification);
+        if (difGoals > 0) {
+            setMatchPoints(homeTeamClassification, visitingTeamClassification);
+        } else if (difGoals == 0) {
+            setDraws(homeTeamClassification);
+            setDraws(visitingTeamClassification);
+        } else {
+            setMatchPoints(visitingTeamClassification, homeTeamClassification);
         }
-    }
-
-    //MÉTODOS HTTP
-    //POST
-    @Transactional
-    public MatchesDomain saveMatch(MatchesDto matchesDto) {
-        validateNewMatch(matchesDto);
-        TeamDomain homeTeam = teamService.findById(matchesDto.getHomeTeamId());
-        TeamDomain visitingTeam = teamService.findById(matchesDto.getVisitingTeamId());
-        MatchesDomain matchesDomain = new MatchesDomain();
-
-        if (Objects.nonNull(matchesDto.getChampionshipId())) {
-            ChampionshipDomain championship = championshipService.findById(matchesDto.getChampionshipId());
-            matchesDomain.setChampionship(championship);
-        }
-        matchesDomain.setHomeTeam(homeTeam);
-        matchesDomain.setVisitingTeam(visitingTeam);
-        matchesDomain.setHomeTeamGoals(0);
-        matchesDomain.setVisitingTeamGoals(0);
-        matchesDomain.setFinishedMatch(false);
-        matchesDomain.setInProgress(false);
-        matchesDomain.setMatchDate(matchesDto.getMatchDate());
-        return matchesRepository.save(matchesDomain);
-    }
-
-    //GET POR ID
-    public MatchesDto findById(Long id) {
-        MatchesDomain matchDomain = matchesRepository.findById(id).get();
-        MatchesDto matchDto = new MatchesDto(matchDomain);
-        return matchDto;
-    }
-
-    //GET TODAS PARTIDAS
-    public Page<MatchesDomain> findAll(Pageable pageable) {
-        return matchesRepository.findAll(pageable);
-    }
-
-    // PUT TIMES DA PARTIDA
-    @Transactional
-    public MatchesDomain replaceMatch(long id, MatchesDto matchesDto) {
-        validateInProgressOrFinished(id);
-        validateNewMatch(matchesDto);
-        MatchesDomain updateMatch = matchesRepository.findById(id).get();
-        updateMatch.setHomeTeam(updateMatch.getHomeTeam());
-        updateMatch.setVisitingTeam(updateMatch.getVisitingTeam());
-        return this.matchesRepository.save(updateMatch);
-    }
-
-    //PUT PLACAR DA PARTIDA
-    @Transactional
-    public MatchesDomain updateMatchInProgress(long id, MatchInProgressDto matchInProgressDto) {
-        validateNotInProgressOrFinished(id);
-        MatchesDomain matchesDomain = matchesRepository.findById(id).get();
-        matchesDomain.setHomeTeamGoals(matchInProgressDto.getHomeTeamGoals());
-        matchesDomain.setVisitingTeamGoals(matchInProgressDto.getVisitingTeamGoals());
-        return matchesRepository.save(matchesDomain);
-    }
-
-    //PUT FINALIZAR JOGO
-    @Transactional
-    public void finishMatch(long id) {
-        validateFinishMatch(id);
-    }
-
-    //PUT INICIALIZAR PARTIDA
-    @Transactional
-    public void startMatch(long id) {
-        validateInProgressOrFinished(id);
-        MatchesDomain startMatch = matchesRepository.findById(id).get();
-        startMatch.setInProgress(true);
-        matchesRepository.save(startMatch);
-    }
-
-    //DELETE PARTIDA
-    @Transactional
-    public void deleteMatch(Long id) {
-        validateInProgressOrFinished(id);
-        matchesRepository.deleteById(id);
     }
 }

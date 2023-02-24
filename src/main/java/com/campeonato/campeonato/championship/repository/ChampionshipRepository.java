@@ -10,22 +10,22 @@ import org.springframework.stereotype.Repository;
 public interface ChampionshipRepository extends JpaRepository<ChampionshipDomain, Long> {
     @Query(nativeQuery = true,
             value = "SELECT COUNT(*) > 0 " +
-                    "FROM championship_domain cd " +
-                    "WHERE cd.championship_name = :name " +
-                    "   AND cd.championship_year = :year ")
+                    "FROM championships c " +
+                    "WHERE c.championship_name = :name " +
+                    "   AND c.championship_year = :year ")
     Boolean existsByNameAndYear(@Param("name") String name, @Param("year") int year);
 
     @Query(nativeQuery = true,
             value = "SELECT COUNT(*) > 0 " +
-                    "FROM championship_domain cd " +
-                    "WHERE cd.championship_id = :championshipId " +
-                    "   AND cd.started = true")
+                    "FROM championships c " +
+                    "WHERE c.championship_id = :championshipId " +
+                    "   AND c.started = true")
     Boolean startedChampionship(@Param("championshipId") long id);
 
     @Query(nativeQuery = true,
             value = "SELECT COUNT(*) > 0 " +
-                    "FROM championship_domain cd " +
-                    "WHERE cd.championship_id = :championshipId " +
-                    "   AND cd.finished = true")
+                    "FROM championships c " +
+                    "WHERE c.championship_id = :championshipId " +
+                    "   AND c.finished = true")
     Boolean finishedChampionship(@Param("championshipId") long id);
 }

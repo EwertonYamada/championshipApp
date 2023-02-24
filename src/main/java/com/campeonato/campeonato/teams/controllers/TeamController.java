@@ -1,37 +1,42 @@
 package com.campeonato.campeonato.teams.controllers;
 
 import com.campeonato.campeonato.teams.domain.TeamDomain;
+import com.campeonato.campeonato.teams.repository.TeamRepository;
 import com.campeonato.campeonato.teams.services.TeamService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
 import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/times")
 public class TeamController {
 
-    final
-    TeamService teamService;
+    final TeamService teamService;
+    final TeamRepository teamRepository;
 
-    public TeamController(TeamService teamService) {
+    public TeamController(TeamService teamService, TeamRepository teamRepository) {
         this.teamService = teamService;
+        this.teamRepository = teamRepository;
     }
 
     //SALVAR/CADASTRAR TIME
     @PostMapping
     public ResponseEntity<Object> saveTeam(@RequestBody @Valid TeamDomain teamDomain) {
-        return ResponseEntity.ok(teamService.saveTeam(teamDomain));
+        return ResponseEntity.ok( this.teamService.saveTeam(teamDomain));
     }
 
     //GET LISTA TODOS TIMES
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<Page<TeamDomain>> getAllChampionship(@PageableDefault(page = 0, size = 10,
             sort = "teamName", direction = Sort.Direction.ASC) Pageable pageable) {
-        return ResponseEntity.ok(teamService.findAll(pageable));
+        return ResponseEntity.ok(teamRepository.findAll(pageable));
     }
 
     //GET POR ID
@@ -43,7 +48,7 @@ public class TeamController {
     //ATUALIZAR/SUBSTITUIR TIME
     @PutMapping
     public ResponseEntity<Object> replace(@RequestBody TeamDomain teamDomain) {
-        return ResponseEntity.ok(teamService.replace(teamDomain));
+        return ResponseEntity.ok(this.teamService.replace(teamDomain));
     }
 
     //DELETAR TIME

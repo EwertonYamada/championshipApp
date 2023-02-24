@@ -8,7 +8,4 @@ import org.springframework.stereotype.Repository;
 public interface TeamRepository extends JpaRepository<TeamDomain, Long> {
     boolean existsByTeamName(String teamName);
 
-    TeamDomain existsByTeamId(Long id);
-
-
 }

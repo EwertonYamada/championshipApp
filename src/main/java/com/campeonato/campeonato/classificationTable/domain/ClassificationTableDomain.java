@@ -11,9 +11,11 @@ import javax.persistence.*;
 @Setter
 @NoArgsConstructor
 @Entity
+@Table(name = "classifications")
 public class ClassificationTableDomain {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "classification_id")
     private long classificationTableId;
     @ManyToOne
     @JoinColumn(name = "championship_id")
@@ -21,12 +23,19 @@ public class ClassificationTableDomain {
     @ManyToOne
     @JoinColumn(name = "team_id")
     private TeamDomain team;
-    private long totalGoalsScored; // total gols marcados
-    private long totalGoalsConceded; // total gols sofridos
-    private long wins;   // vitorias
-    private long losses; // derrotas
-    private long draws; // empates
+    @Column(name = "total_goals_scored")
+    private long totalGoalsScored;
+    @Column(name = "total_goals_conceded")
+    private long totalGoalsConceded;
+    @Column(name = "wins")
+    private long wins;
+    @Column(name = "losses")
+    private long losses;
+    @Column(name = "draws")
+    private long draws;
+    @Column(name = "total_score")
     private long totalScore;
-    private long goalsDifference;    //saldo de gols
+    @Column(name = "goals_difference")
+    private long goalsDifference;
 
 }
