@@ -41,21 +41,17 @@ public class ChampionshipService {
         this.teamRepository = teamRepository;
     }
 
-    //MÉTODOS HTTP's
-    //POST   OK
     @Transactional
     public ChampionshipDomain saveChampionship(ChampionshipDomain championshipDomain) {
         validateNewChampionship(championshipDomain);
         return this.championshipRepository.save(championshipDomain);
     }
 
-    //GET ALL  OK
     @Transactional(readOnly = true)
     public Page<ChampionshipDomain> findAll(Pageable pageable) {
         return this.championshipRepository.findAll(pageable);
     }
 
-    //GET POR id
     @Transactional(readOnly = true)
     public ChampionshipDomain findById(Long id) {
         return this.championshipRepository.findById(id).orElseThrow(() -> {
@@ -63,7 +59,6 @@ public class ChampionshipService {
         });
     }
 
-    //PUT para atualizar campeonato  OK
     @Transactional
     public ChampionshipDomain replaceChampionship(long id, ChampionshipDomain championshipDomain) {
         validateNewChampionship(championshipDomain);
@@ -76,7 +71,6 @@ public class ChampionshipService {
         return this.championshipRepository.save(newChampionshipDomain);
     }
 
-    //PUT START CAMPEONATO
     @Transactional
     public void startChampionship(ChampionshipStartDto championshipStartDto) {
         validateStartChampionship(championshipStartDto);
@@ -86,7 +80,6 @@ public class ChampionshipService {
         createClassificationForEachTeam(championshipStartDto, championshipDomain);
     }
 
-    //PUT FINISH CAMPEONATO
     @Transactional
     public void finishChampionship(long id) {
         validateFinishChampionship(id);
@@ -96,13 +89,11 @@ public class ChampionshipService {
         this.championshipRepository.save(championshipDomain);
     }
 
-    //DELETE
     @Transactional
     public void deleteChampionship(long id) {
         this.championshipRepository.deleteById(id);
     }
 
-    // VALIDADORES new championship
     private void validateNewChampionship(ChampionshipDomain championshipDomain) {
         yearValidator(championshipDomain);
         validateChampionshipExists(championshipDomain);

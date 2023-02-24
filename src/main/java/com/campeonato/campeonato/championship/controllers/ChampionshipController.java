@@ -31,20 +31,17 @@ public class ChampionshipController {
         return ResponseEntity.ok(this.championshipService.saveChampionship(championshipDomain));
     }
 
-    //GET TODOS CAMPEONATOS
     @GetMapping
     public ResponseEntity<Page<ChampionshipDomain>> getAllChampionship(@PageableDefault(page = 0, size = 10,
             sort = "championshipYear", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(this.championshipService.findAll(pageable));
     }
 
-    //GET CAMPEONATO POR NOME e ANO
     @GetMapping("/{id}")
     public ResponseEntity<Object> getByid(@PathVariable("id") long id) {
         return ResponseEntity.ok(this.championshipService.findById(id));
     }
 
-    //PUT PARA ATUALIZAR O CAMPEONATO
     @PutMapping("/{id}")
     public ResponseEntity<Object> replaceChampionship(@PathVariable("id") long id,
                                                       @RequestBody @Valid ChampionshipDomain championshipDomain) {
@@ -52,7 +49,6 @@ public class ChampionshipController {
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
-    //PUT PARA STARTAR O CAMPEONATO
     @PutMapping("/{id}/start")
     public ResponseEntity<Object> startChampionship(@PathVariable("id") long id,
                                                     @RequestBody @Valid ChampionshipStartDto championshipStartDto) {
@@ -60,14 +56,12 @@ public class ChampionshipController {
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
-    //PUT FINALIZAR CAMPEONATO
     @PutMapping("/{id}/finish")
     public ResponseEntity<Object> finishChampionship(@PathVariable("id") long id) {
         this.championshipService.finishChampionship(id);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
-    //DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> deleteChampionship(@PathVariable long id) {
         this.championshipService.deleteChampionship(id);

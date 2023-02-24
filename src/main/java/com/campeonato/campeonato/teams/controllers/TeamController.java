@@ -26,32 +26,27 @@ public class TeamController {
         this.teamRepository = teamRepository;
     }
 
-    //SALVAR/CADASTRAR TIME
     @PostMapping
     public ResponseEntity<Object> saveTeam(@RequestBody @Valid TeamDomain teamDomain) {
         return ResponseEntity.ok( this.teamService.saveTeam(teamDomain));
     }
 
-    //GET LISTA TODOS TIMES
     @GetMapping("/all")
     public ResponseEntity<Page<TeamDomain>> getAllChampionship(@PageableDefault(page = 0, size = 10,
             sort = "teamName", direction = Sort.Direction.ASC) Pageable pageable) {
         return ResponseEntity.ok(teamRepository.findAll(pageable));
     }
 
-    //GET POR ID
     @GetMapping("/{id}")
     public ResponseEntity<Object> findById(@PathVariable long id) {
         return ResponseEntity.ok(teamService.findById(id));
     }
 
-    //ATUALIZAR/SUBSTITUIR TIME
     @PutMapping
     public ResponseEntity<Object> replace(@RequestBody TeamDomain teamDomain) {
         return ResponseEntity.ok(this.teamService.replace(teamDomain));
     }
 
-    //DELETAR TIME
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> deleteTeam(@PathVariable long id) {
         teamService.deleteTeam(id);

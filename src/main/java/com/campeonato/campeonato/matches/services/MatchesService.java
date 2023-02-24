@@ -115,17 +115,13 @@ public class MatchesService {
         this.matchesRepository.save(startMatch);
     }
 
-    //DELETE PARTIDA
     @Transactional
     public void deleteMatch(Long id) {
         this.validateInProgressOrFinished(id);
         this.matchesRepository.deleteById(id);
     }
 
-    //VALIDADORES
-    // VALIDADOR PARA CRIAR UM NOVO JOGO
     private void validateNewMatch(MatchesDto matchesDto) {
-
         if (Objects.nonNull(matchesDto.getChampionshipId())) {
             validateChampionshipStatus(matchesDto);
             teamExistsInTheChampionship(matchesDto);
@@ -136,14 +132,12 @@ public class MatchesService {
         validateTeamAvailability(matchesDto);
     }
 
-    //VALIDADOR PARA QUE UM TIME NÃO JOGUE CONTRA ELE MESMO
     private void validateOpponents(MatchesDto matchesDto) {
         if (Objects.equals(matchesDto.getHomeTeamId(), matchesDto.getVisitingTeamId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Adversários devem ser diferentes");
         }
     }
 
-    //VALIDADOR PARA QUE NÃO TENHA JOGO EM CAMPEONATO NÃO INICIADO OU JÁ FINALIZADO
     private void validateChampionshipStatus(MatchesDto matchesDto) {
         if (!championshipRepository.startedChampionship(matchesDto.getChampionshipId()) || championshipRepository.finishedChampionship(matchesDto.getHomeTeamId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campeonato não inicializado ou já finalizado");
